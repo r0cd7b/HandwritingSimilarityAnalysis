@@ -1,51 +1,118 @@
-try:
-    from cv2 import cv2
-    import numpy as np
-except ImportError:
-    pass
+import tensorflow as tf
+from tensorflow.keras import layers
+import numpy as np
+from tensorflow import keras
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
 
-if __name__ == '__main__':
-    image = cv2.imread('hello.bmp', 0)
+data_dir = "handwriting"
+batch_size = 1
+img_height = 100
+img_width = 200
 
-    blur = cv2.GaussianBlur(image, ksize=(3, 3), sigmaX=0)
-    ret, thresh1 = cv2.threshold(blur, 127, 255, cv2.THRESH_BINARY)
-    edged = cv2.Canny(blur, 10, 250)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
-    closed = cv2.morphologyEx(edged, cv2.MORPH_CLOSE, kernel)
-    contours, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours_image = cv2.drawContours(blur, contours, -1, (0, 255, 0), 3)
-    contours_xy = np.array(contours, dtype=object)
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    color_mode="grayscale",
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    color_mode="grayscale",
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
+class_names = train_ds.class_names
+print(class_names)
 
-    x_min, x_max = 0, 0
-    value = list()
-    for i in range(len(contours_xy)):
-        for j in range(len(contours_xy[i])):
-            value.append(contours_xy[i][j][0][0])  # 네번째 괄호가 0일때 x의 값
-            x_min = min(value)
-            x_max = max(value)
-    print(x_min)
-    print(x_max)
+# 생략 가능
+for image_batch, labels_batch in train_ds:
+    print(image_batch.shape)
+    print(labels_batch.shape)
+    break
 
-    # y의 min과 max 찾기
-    y_min, y_max = 0, 0
-    value = list()
-    for i in range(len(contours_xy)):
-        for j in range(len(contours_xy[i])):
-            value.append(contours_xy[i][j][0][1])  # 네번째 괄호가 0일때 x의 값
-            y_min = min(value)
-            y_max = max(value)
-    print(y_min)
-    print(y_max)
+# 생략 가능
+# AUTOTUNE = tf.data.experimental.AUTOTUNE
+# train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+# val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-    x = x_min
-    y = y_min
-    w = x_max - x_min
-    h = y_max - y_min
+# 생략 가능
+normalization_layer = layers.experimental.preprocessing.Rescaling(1. / 255)
+normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+image_batch, labels_batch = next(iter(normalized_ds))
+first_image = image_batch[0]
+print(np.min(first_image), np.max(first_image))
 
-    img_trim = image[y:y + h, x:x + w]
-    cv2.imwrite('org_trim.jpg', img_trim)
-    org_image = cv2.imread('org_trim.jpg')
+data_augmentation = keras.Sequential([
+    layers.experimental.preprocessing.RandomFlip("horizontal", input_shape=(img_height, img_width, 1)),
+    layers.experimental.preprocessing.RandomRotation(0.1),
+    layers.experimental.preprocessing.RandomZoom(0.1)])
 
-    cv2.imshow('org_image', org_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# 생략 가능
+plt.figure(figsize=(10, 10))
+for images, _ in train_ds.take(1):
+    for i in range(9):
+        augmented_images = data_augmentation(images)
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(augmented_images[0].numpy().astype("uint8"))
+        plt.axis("off")
+plt.show()
+
+num_classes = len(class_names)
+model = Sequential([
+    data_augmentation,
+    layers.experimental.preprocessing.Rescaling(1. / 255),
+    layers.Conv2D(16, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Dropout(0.2),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(num_classes)])
+model.compile(
+    optimizer='adam',
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=['accuracy'])
+
+# 생략 가능
+model.summary()
+
+epochs = 80
+history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+
+# 생략 가능
+# acc = history.history['accuracy']
+# val_acc = history.history['val_accuracy']
+# loss = history.history['loss']
+# val_loss = history.history['val_loss']
+# epochs_range = range(epochs)
+# plt.figure(figsize=(8, 8))
+# plt.subplot(1, 2, 1)
+# plt.plot(epochs_range, acc, label='Training Accuracy')
+# plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+# plt.legend(loc='lower right')
+# plt.title('Training and Validation Accuracy')
+# plt.subplot(1, 2, 2)
+# plt.plot(epochs_range, loss, label='Training Loss')
+# plt.plot(epochs_range, val_loss, label='Validation Loss')
+# plt.legend(loc='upper right')
+# plt.title('Training and Validation Loss')
+# plt.show()
+
+img = keras.preprocessing.image.load_img("kyubin_jeon_6.jpg", color_mode="grayscale", target_size=(img_height, img_width))
+img_array = keras.preprocessing.image.img_to_array(img)
+img_array = tf.expand_dims(img_array, 0)
+predictions = model.predict(img_array)
+score = tf.nn.softmax(predictions[0])
+print(f"\nThis image most likely belongs to "
+      f"{class_names[np.argmax(score)]}"
+      f" with a "
+      f"{100 * np.max(score):.2f}"
+      f" percent confidence.")
