@@ -5,8 +5,8 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
 
-data_dir = "handwriting"
-batch_size = 1
+data_dir = "data"
+batch_size = 10
 img_height = 100
 img_width = 200
 
@@ -53,14 +53,14 @@ data_augmentation = keras.Sequential([
     layers.experimental.preprocessing.RandomZoom(0.1)])
 
 # 생략 가능
-plt.figure(figsize=(10, 10))
-for images, _ in train_ds.take(1):
-    for i in range(9):
-        augmented_images = data_augmentation(images)
-        ax = plt.subplot(3, 3, i + 1)
-        plt.imshow(augmented_images[0].numpy().astype("uint8"))
-        plt.axis("off")
-plt.show()
+# plt.figure(figsize=(10, 10))
+# for images, _ in train_ds.take(1):
+#     for i in range(9):
+#         augmented_images = data_augmentation(images)
+#         ax = plt.subplot(3, 3, i + 1)
+#         plt.imshow(augmented_images[0].numpy().astype("uint8"), cmap="Greys")
+#         plt.axis("off")
+# plt.show()
 
 num_classes = len(class_names)
 model = Sequential([
@@ -84,7 +84,7 @@ model.compile(
 # 생략 가능
 model.summary()
 
-epochs = 80
+epochs = 100
 history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 
 # 생략 가능
@@ -106,7 +106,40 @@ history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 # plt.title('Training and Validation Loss')
 # plt.show()
 
-img = keras.preprocessing.image.load_img("kyubin_jeon_6.jpg", color_mode="grayscale", target_size=(img_height, img_width))
+img = keras.preprocessing.image.load_img(
+    "data/hojin_lee (1).jpg",
+    color_mode="grayscale",
+    target_size=(img_height, img_width))
+img_array = keras.preprocessing.image.img_to_array(img)
+img_array = tf.expand_dims(img_array, 0)
+predictions = model.predict(img_array)
+score = tf.nn.softmax(predictions[0])
+print(f"\nThis image most likely belongs to "
+      f"{class_names[np.argmax(score)]}"
+      f" with a "
+      f"{100 * np.max(score):.2f}"
+      f" percent confidence.")
+
+
+img = keras.preprocessing.image.load_img(
+    "data/kyubin_jeon (1).jpg",
+    color_mode="grayscale",
+    target_size=(img_height, img_width))
+img_array = keras.preprocessing.image.img_to_array(img)
+img_array = tf.expand_dims(img_array, 0)
+predictions = model.predict(img_array)
+score = tf.nn.softmax(predictions[0])
+print(f"\nThis image most likely belongs to "
+      f"{class_names[np.argmax(score)]}"
+      f" with a "
+      f"{100 * np.max(score):.2f}"
+      f" percent confidence.")
+
+
+img = keras.preprocessing.image.load_img(
+    "data/sanggyun_lee (1).jpg",
+    color_mode="grayscale",
+    target_size=(img_height, img_width))
 img_array = keras.preprocessing.image.img_to_array(img)
 img_array = tf.expand_dims(img_array, 0)
 predictions = model.predict(img_array)
