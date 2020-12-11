@@ -4,11 +4,12 @@ import numpy as np
 from tensorflow import keras
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
+import os
 
-data_dir = "data"
-batch_size = 10
-img_height = 100
-img_width = 200
+data_dir = "train"
+batch_size = 32
+img_height = 180
+img_width = 180
 
 train_ds = tf.keras.preprocessing.image_dataset_from_directory(
     data_dir,
@@ -106,46 +107,16 @@ history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 # plt.title('Training and Validation Loss')
 # plt.show()
 
-img = keras.preprocessing.image.load_img(
-    "data/hojin_lee (1).jpg",
-    color_mode="grayscale",
-    target_size=(img_height, img_width))
-img_array = keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0)
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
-print(f"\nThis image most likely belongs to "
-      f"{class_names[np.argmax(score)]}"
-      f" with a "
-      f"{100 * np.max(score):.2f}"
-      f" percent confidence.")
-
-
-img = keras.preprocessing.image.load_img(
-    "data/kyubin_jeon (1).jpg",
-    color_mode="grayscale",
-    target_size=(img_height, img_width))
-img_array = keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0)
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
-print(f"\nThis image most likely belongs to "
-      f"{class_names[np.argmax(score)]}"
-      f" with a "
-      f"{100 * np.max(score):.2f}"
-      f" percent confidence.")
-
-
-img = keras.preprocessing.image.load_img(
-    "data/sanggyun_lee (1).jpg",
-    color_mode="grayscale",
-    target_size=(img_height, img_width))
-img_array = keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0)
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
-print(f"\nThis image most likely belongs to "
-      f"{class_names[np.argmax(score)]}"
-      f" with a "
-      f"{100 * np.max(score):.2f}"
-      f" percent confidence.")
+predict_dir = "predict"
+for predict in os.listdir(predict_dir):
+    img = keras.preprocessing.image.load_img(
+        f"{predict_dir}/{predict}",
+        color_mode="grayscale",
+        target_size=(img_height, img_width))
+    img_array = keras.preprocessing.image.img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0)
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+    print(f"\n\"{predict}\" image most likely belongs to "
+          f"{class_names[np.argmax(score)]} with a "
+          f"{100 * np.max(score):.2f} percent confidence.")
