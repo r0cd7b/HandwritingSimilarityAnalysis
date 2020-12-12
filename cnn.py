@@ -8,12 +8,14 @@ import os
 
 
 class CNN:
-    def __init__(self, data_dir):
+    def __init__(self, browser, data_dir):
+        self.browser = browser
+
         batch_size = 32
         self.height = 180
         self.width = 180
 
-        train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        self.train_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_dir,
             color_mode="grayscale",
             validation_split=0.2,
@@ -23,15 +25,16 @@ class CNN:
             batch_size=batch_size
         )
 
-        self.class_names = train_ds.class_names
-        print(self.class_names)
+        self.class_names = self.train_ds.class_names
+        self.browser.append(f"Class names: {self.class_names}")
 
         try:
             self.model = tf.keras.models.load_model('model.h5')
         except Exception as e:
             print(e)
+            self.browser.append(str(e))
 
-            val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+            self.val_ds = tf.keras.preprocessing.image_dataset_from_directory(
                 data_dir,
                 color_mode="grayscale",
                 validation_split=0.2,
@@ -42,22 +45,26 @@ class CNN:
             )
 
             # 생략 가능
-            for image_batch, labels_batch in train_ds:
+            for image_batch, labels_batch in self.train_ds:
                 print(image_batch.shape)
                 print(labels_batch.shape)
+                self.browser.append(f"Image batch shape: {image_batch.shape}")
+                self.browser.append(f"Labels batch shape: {labels_batch.shape}")
                 break
 
             # 생략 가능
             AUTOTUNE = tf.data.experimental.AUTOTUNE
-            train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-            val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+            self.train_ds = self.train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+            self.val_ds = self.val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
             # 생략 가능
             normalization_layer = layers.experimental.preprocessing.Rescaling(1. / 255)
-            normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+            normalized_ds = self.train_ds.map(lambda x, y: (normalization_layer(x), y))
             image_batch, labels_batch = next(iter(normalized_ds))
             first_image = image_batch[0]
             print(np.min(first_image), np.max(first_image))
+            self.browser.append(f"Minimum value of first image: {np.min(first_image)}")
+            self.browser.append(f"Maximum value of first image: {np.max(first_image)}")
 
             data_augmentation = keras.Sequential([
                 layers.experimental.preprocessing.RandomFlip("horizontal", input_shape=(self.height, self.width, 1)),
@@ -98,8 +105,8 @@ class CNN:
             # 생략 가능
             self.model.summary()
 
-            epochs = 200
-            history = self.model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+            self.epochs = 200
+            self.history = self.model.fit(self.train_ds, validation_data=self.val_ds, epochs=self.epochs)
             self.model.save('model.h5')
 
             # 생략 가능
@@ -126,13 +133,19 @@ class CNN:
             img = keras.preprocessing.image.load_img(
                 f"{predict_dir}/{predict}",
                 color_mode="grayscale",
-                target_size=(self.height, self.width))
+                target_size=(self.height, self.width)
+            )
             img_array = keras.preprocessing.image.img_to_array(img)
             img_array = tf.expand_dims(img_array, 0)
             predictions = self.model.predict(img_array)
             score = tf.nn.softmax(predictions[0])
             print(
-                f"\n\"{predict}\" image most likely belongs to "
+                f"\"{predict}\" image most likely belongs to "
+                f"{self.class_names[np.argmax(score)]} with a "
+                f"{100 * np.max(score):.2f} percent confidence."
+            )
+            self.browser.append(
+                f"\"{predict}\" image most likely belongs to "
                 f"{self.class_names[np.argmax(score)]} with a "
                 f"{100 * np.max(score):.2f} percent confidence."
             )
