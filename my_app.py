@@ -9,6 +9,9 @@ import time
 class MyApp(QWidget):
     def __init__(self, model):
         super().__init__()
+        # camera = PiCamera()
+        # camera.resolution = (640, 480)
+        # camera.start_preview(fullscreen=False)
 
         capture_train_label = QLabel("Enter the class name:")
         self.__capture_train_edit = QLineEdit(self)
@@ -49,10 +52,6 @@ class MyApp(QWidget):
         self.center()
         self.show()
 
-        # camera = PiCamera()
-        # camera.resolution = (640, 480)
-        # camera.start_preview(fullscreen=False)
-
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
@@ -75,8 +74,7 @@ class MyApp(QWidget):
         self.__browser.append(f"The image was saved as {image_dir}")
 
     def write(self, text):
-        self.__browser.append(text.strip('\n'))
-        self.__browser.append("ww")
+        self.__browser.append(text.replace('\n', ''))
 
     def flush(self):
         self.__browser.clear()
