@@ -49,7 +49,7 @@ class MyApp(QWidget):
 
         self.camera = PiCamera()
         self.camera.resolution = (1024, 768)
-        self.camera.stop_preview()
+        self.camera.start_preview()
 
     def center(self):
         qr = self.frameGeometry()
