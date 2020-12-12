@@ -1,31 +1,29 @@
-from cnn import CNN
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 import time
-import os
 
 
 # from picamera import PiCamera
 
 
 class MyApp(QWidget):
-    def __init__(self):
+    def __init__(self, model):
         super().__init__()
 
-        capture_train_label = QLabel('Enter the class name:')
+        capture_train_label = QLabel("Enter the class name:")
         self.__capture_train_edit = QLineEdit(self)
 
         capture_train_button = QPushButton("Capture training image")
         capture_train_button.clicked.connect(self.capture_train)
 
-        train_button = QPushButton("Fit image")
-        train_button.clicked.connect(self.train)
+        train_button = QPushButton("Train images")
+        train_button.clicked.connect(model.train)
 
         capture_predict_button = QPushButton("Capture predicting image")
         capture_predict_button.clicked.connect(self.capture_predict)
 
-        predict_button = QPushButton("Predict image")
-        predict_button.clicked.connect(self.predict)
+        predict_button = QPushButton("Predict images")
+        predict_button.clicked.connect(model.test)
 
         self.__browser = QTextBrowser()
         self.__browser.setAcceptRichText(True)
@@ -51,8 +49,6 @@ class MyApp(QWidget):
         self.center()
         self.show()
 
-        self.__cnn = CNN(self.__browser)
-
         # camera = PiCamera()
         # camera.resolution = (640, 480)
         # camera.start_preview(fullscreen=False)
@@ -65,7 +61,7 @@ class MyApp(QWidget):
 
     def capture_train(self):
         text = self.__capture_train_edit.text().lower().replace(' ', '_')
-        if text == "":
+        if text == '':
             QMessageBox.information(self, "Class Name", "The class name field is empty.\nPlease enter the class name")
             self.__capture_train_edit.setFocus()
             return
@@ -73,15 +69,14 @@ class MyApp(QWidget):
         # self.camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
 
-    def train(self):
-        if os.path.exists("model.h5"):
-            os.remove("model.h5")
-        self.__cnn.fit()
-
     def capture_predict(self):
         image_dir = f"predict/{time.time_ns()}.png"
         # self.camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
 
-    def predict(self):
-        self.__cnn.predict()
+    def write(self, text):
+        self.__browser.append(text.strip('\n'))
+        self.__browser.append("ww")
+
+    def flush(self):
+        self.__browser.clear()
