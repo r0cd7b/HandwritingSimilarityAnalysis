@@ -3,9 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 import time
 import os
-
-
-# from picamera import PiCamera
+from picamera import PiCamera
 
 
 class MyApp(QWidget):
@@ -54,9 +52,9 @@ class MyApp(QWidget):
 
         self.cnn = CNN(self.browser, "train")
 
-        # self.camera = PiCamera()
-        # self.camera.resolution = (640, 480)
-        # self.camera.start_preview(fullscreen=False, window=(100, 100, 640, 480))
+        self.camera = PiCamera()
+        self.camera.resolution = (640, 480)
+        self.camera.start_preview(fullscreen=False, window=(100, 100, 640, 480))
 
     def center(self):
         qr = self.frameGeometry()
@@ -76,7 +74,7 @@ class MyApp(QWidget):
             )
             return
         image_dir = f"train/{text.replace(' ', '_')}/{time.time()}.png"
-        # self.camera.capture(image_dir)
+        self.camera.capture(image_dir)
         self.browser.append(f"The image was saved in {image_dir}")
 
     def train(self):
@@ -86,7 +84,7 @@ class MyApp(QWidget):
 
     def capture_predict(self):
         image_dir = f"predict/{time.time()}.png"
-        # self.camera.capture(image_dir)
+        self.camera.capture(image_dir)
         self.browser.append(f"The image was saved in {image_dir}")
 
     def predict(self):
