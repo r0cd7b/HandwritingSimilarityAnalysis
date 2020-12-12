@@ -20,7 +20,8 @@ class CNN:
             subset="training",
             seed=123,
             image_size=(self.height, self.width),
-            batch_size=batch_size)
+            batch_size=batch_size
+        )
 
         self.class_names = train_ds.class_names
         print(self.class_names)
@@ -37,7 +38,8 @@ class CNN:
                 subset="validation",
                 seed=123,
                 image_size=(self.height, self.width),
-                batch_size=batch_size)
+                batch_size=batch_size
+            )
 
             # 생략 가능
             for image_batch, labels_batch in train_ds:
@@ -60,7 +62,8 @@ class CNN:
             data_augmentation = keras.Sequential([
                 layers.experimental.preprocessing.RandomFlip("horizontal", input_shape=(self.height, self.width, 1)),
                 layers.experimental.preprocessing.RandomRotation(0.1),
-                layers.experimental.preprocessing.RandomZoom(0.1)])
+                layers.experimental.preprocessing.RandomZoom(0.1)
+            ])
 
             # 생략 가능
             # plt.figure(figsize=(10, 10))
@@ -85,7 +88,8 @@ class CNN:
                 layers.Dropout(0.2),
                 layers.Flatten(),
                 layers.Dense(128, activation='relu'),
-                layers.Dense(num_classes)])
+                layers.Dense(num_classes)
+            ])
             self.model.compile(
                 optimizer='adam',
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -127,6 +131,8 @@ class CNN:
             img_array = tf.expand_dims(img_array, 0)
             predictions = self.model.predict(img_array)
             score = tf.nn.softmax(predictions[0])
-            print(f"\n\"{predict}\" image most likely belongs to "
-                  f"{self.class_names[np.argmax(score)]} with a "
-                  f"{100 * np.max(score):.2f} percent confidence.")
+            print(
+                f"\n\"{predict}\" image most likely belongs to "
+                f"{self.class_names[np.argmax(score)]} with a "
+                f"{100 * np.max(score):.2f} percent confidence."
+            )
