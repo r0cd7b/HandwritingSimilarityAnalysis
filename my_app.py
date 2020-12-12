@@ -48,7 +48,6 @@ class MyApp(QWidget):
         self.cnn = CNN(self.browser, "train")
 
         self.camera = PiCamera()
-        self.camera.resolution = (1024, 768)
         self.camera.start_preview()
 
     def center(self):
