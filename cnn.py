@@ -13,11 +13,11 @@ class CNN:
         self.__height = None
         self.__width = None
         self.__class_names = None
-        self.__model = None
 
         try:
             self.__model = tf.keras.models.load_model('model.h5')
         except Exception as e:
+            self.__model = None
             print(e)
             self.__browser.append(str(e))
 
