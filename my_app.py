@@ -1,6 +1,5 @@
 from cnn import CNN
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QTextBrowser, QGridLayout, QDesktopWidget, \
-    QMessageBox
+from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 import time
 import os
