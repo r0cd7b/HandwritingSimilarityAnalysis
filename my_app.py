@@ -1,48 +1,50 @@
 from cnn import CNN
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QTextBrowser, QGridLayout, QDesktopWidget, \
+    QMessageBox
 from PyQt5.QtGui import QIcon
 import time
 import os
-from picamera import PiCamera
+
+
+# from picamera import PiCamera
 
 
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.train_label = QLabel('Enter class name:')
-        self.train_edit = QLineEdit(self)
+        capture_train_label = QLabel('Enter the class name:')
+        self.__capture_train_edit = QLineEdit(self)
 
-        self.capture_train_button = QPushButton("Capture training image")
-        self.capture_train_button.clicked.connect(self.capture_train)
+        capture_train_button = QPushButton("Capture training image")
+        capture_train_button.clicked.connect(self.capture_train)
 
-        self.train_button = QPushButton("Train model")
-        self.train_button.clicked.connect(self.train)
+        train_button = QPushButton("Fit image")
+        train_button.clicked.connect(self.train)
 
-        self.capture_predict_button = QPushButton("Capture predicting image")
-        self.capture_predict_button.clicked.connect(self.capture_predict)
+        capture_predict_button = QPushButton("Capture predicting image")
+        capture_predict_button.clicked.connect(self.capture_predict)
 
-        self.predict_button = QPushButton("Predict")
-        self.predict_button.clicked.connect(self.predict)
+        predict_button = QPushButton("Predict image")
+        predict_button.clicked.connect(self.predict)
 
-        self.browser = QTextBrowser()
-        self.browser.setAcceptRichText(True)
-        self.browser.setOpenExternalLinks(True)
+        self.__browser = QTextBrowser()
+        self.__browser.setAcceptRichText(True)
+        self.__browser.setOpenExternalLinks(True)
 
-        self.clear_button = QPushButton('Clear')
-        self.clear_button.clicked.connect(self.browser.clear)
+        clear_button = QPushButton('Clear')
+        clear_button.clicked.connect(self.__browser.clear)
 
-        self.grid = QGridLayout()
-        self.setLayout(self.grid)
-
-        self.grid.addWidget(self.train_label, 0, 0)
-        self.grid.addWidget(self.train_edit, 1, 0)
-        self.grid.addWidget(self.capture_train_button, 2, 0)
-        self.grid.addWidget(self.train_button, 3, 0)
-        self.grid.addWidget(self.capture_predict_button, 4, 0)
-        self.grid.addWidget(self.predict_button, 5, 0)
-        self.grid.addWidget(self.browser, 6, 0)
-        self.grid.addWidget(self.clear_button, 7, 0)
+        grid = QGridLayout()
+        self.setLayout(grid)
+        grid.addWidget(capture_train_label, 0, 0)
+        grid.addWidget(self.__capture_train_edit, 1, 0)
+        grid.addWidget(capture_train_button, 2, 0)
+        grid.addWidget(train_button, 3, 0)
+        grid.addWidget(capture_predict_button, 4, 0)
+        grid.addWidget(predict_button, 5, 0)
+        grid.addWidget(self.__browser, 6, 0)
+        grid.addWidget(clear_button, 7, 0)
 
         self.setWindowTitle('Handwriting Similarity Analysis')
         self.setWindowIcon(QIcon('handwriting_icon.png'))
@@ -50,11 +52,11 @@ class MyApp(QWidget):
         self.center()
         self.show()
 
-        self.cnn = CNN(self.browser, "train")
+        self.__cnn = CNN(self.__browser)
 
-        self.camera = PiCamera()
-        self.camera.resolution = (640, 480)
-        self.camera.start_preview(fullscreen=False, window=(100, 100, 640, 480))
+        # camera = PiCamera()
+        # camera.resolution = (640, 480)
+        # camera.start_preview(fullscreen=False)
 
     def center(self):
         qr = self.frameGeometry()
@@ -63,31 +65,24 @@ class MyApp(QWidget):
         self.move(qr.topLeft())
 
     def capture_train(self):
-        text = self.train_edit.text()
+        text = self.__capture_train_edit.text().lower().replace(' ', '_')
         if text == "":
-            QMessageBox.question(
-                self,
-                'The class name is empty',
-                'Please write the class name',
-                QMessageBox.Yes,
-                QMessageBox.Yes
-            )
+            QMessageBox.information(self, "Class Name", "The class name field is empty.\nPlease enter the class name")
+            self.__capture_train_edit.setFocus()
             return
-        image_dir = f"train/{text.replace(' ', '_')}/{time.time()}.png"
-        self.camera.capture(image_dir)
-        self.browser.append(f"The image was saved in {image_dir}")
+        image_dir = f"train/{text}/{text}_{time.time_ns()}.png"
+        # self.camera.capture(image_dir)
+        self.__browser.append(f"The image was saved as {image_dir}")
 
     def train(self):
         if os.path.exists("model.h5"):
             os.remove("model.h5")
-        self.cnn = CNN(self.browser, "train")
+        self.__cnn.fit()
 
     def capture_predict(self):
-        image_dir = f"predict/{time.time()}.png"
-        self.camera.capture(image_dir)
-        self.browser.append(f"The image was saved in {image_dir}")
+        image_dir = f"predict/{time.time_ns()}.png"
+        # self.camera.capture(image_dir)
+        self.__browser.append(f"The image was saved as {image_dir}")
 
     def predict(self):
-        if self.cnn is None:
-            return
-        self.cnn.predict("predict")
+        self.__cnn.predict()

@@ -8,144 +8,157 @@ import os
 
 
 class CNN:
-    def __init__(self, browser, data_dir):
-        self.browser = browser
+    def __init__(self, browser):
+        self.__browser = browser
+        self.__height = None
+        self.__width = None
+        self.__class_names = None
+        self.__model = None
 
+        try:
+            self.__model = tf.keras.models.load_model('model.h5')
+        except Exception as e:
+            print(e)
+            self.__browser.append(str(e))
+
+    def fit(self):
+        data_dir = "train"
         batch_size = 32
-        self.height = 180
-        self.width = 180
+        self.__height = 180
+        self.__width = 180
 
-        self.train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+        train_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_dir,
             color_mode="grayscale",
             validation_split=0.2,
             subset="training",
             seed=123,
-            image_size=(self.height, self.width),
+            image_size=(self.__height, self.__width),
+            batch_size=batch_size
+        )
+        self.__class_names = train_ds.class_names
+        print(self.__class_names)
+        self.__browser.append(f"Class names: {self.__class_names}")
+
+        val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+            data_dir,
+            color_mode="grayscale",
+            validation_split=0.2,
+            subset="validation",
+            seed=123,
+            image_size=(self.__height, self.__width),
             batch_size=batch_size
         )
 
-        self.class_names = self.train_ds.class_names
-        self.browser.append(f"Class names: {self.class_names}")
+        # 생략 가능
+        for image_batch, labels_batch in train_ds:
+            print(image_batch.shape)
+            self.__browser.append(f"Image batch shape: {image_batch.shape}")
+            print(labels_batch.shape)
+            self.__browser.append(f"Labels batch shape: {labels_batch.shape}")
+            break
 
-        try:
-            self.model = tf.keras.models.load_model('model.h5')
-        except Exception as e:
-            print(e)
-            self.browser.append(str(e))
+        AUTOTUNE = tf.data.experimental.AUTOTUNE
+        train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+        val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-            self.val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-                data_dir,
-                color_mode="grayscale",
-                validation_split=0.2,
-                subset="validation",
-                seed=123,
-                image_size=(self.height, self.width),
-                batch_size=batch_size
-            )
+        # 생략 가능
+        normalization_layer = layers.experimental.preprocessing.Rescaling(1. / 255)
+        normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+        image_batch, labels_batch = next(iter(normalized_ds))
+        first_image = image_batch[0]
+        print(np.min(first_image), np.max(first_image))
+        self.__browser.append(
+            f"Minimum value of first image: {np.min(first_image)}, Maximum value of first image: {np.max(first_image)}"
+        )
 
-            # 생략 가능
-            for image_batch, labels_batch in self.train_ds:
-                print(image_batch.shape)
-                print(labels_batch.shape)
-                self.browser.append(f"Image batch shape: {image_batch.shape}")
-                self.browser.append(f"Labels batch shape: {labels_batch.shape}")
-                break
+        data_augmentation = keras.Sequential([
+            layers.experimental.preprocessing.RandomFlip("horizontal",
+                                                         input_shape=(self.__height, self.__width, 1)),
+            layers.experimental.preprocessing.RandomRotation(0.1),
+            layers.experimental.preprocessing.RandomZoom(0.1)
+        ])
 
-            # 생략 가능
-            AUTOTUNE = tf.data.experimental.AUTOTUNE
-            self.train_ds = self.train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-            self.val_ds = self.val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+        # 생략 가능
+        plt.figure(figsize=(10, 10))
+        for images, _ in train_ds.take(1):
+            for i in range(9):
+                augmented_images = data_augmentation(images)
+                plt.subplot(3, 3, i + 1)
+                plt.imshow(augmented_images[0].numpy().astype("uint8"), cmap="Greys")
+                plt.axis("off")
 
-            # 생략 가능
-            normalization_layer = layers.experimental.preprocessing.Rescaling(1. / 255)
-            normalized_ds = self.train_ds.map(lambda x, y: (normalization_layer(x), y))
-            image_batch, labels_batch = next(iter(normalized_ds))
-            first_image = image_batch[0]
-            print(np.min(first_image), np.max(first_image))
-            self.browser.append(f"Minimum value of first image: {np.min(first_image)}")
-            self.browser.append(f"Maximum value of first image: {np.max(first_image)}")
+        num_classes = len(self.__class_names)
+        self.__model = Sequential([
+            data_augmentation,
+            layers.experimental.preprocessing.Rescaling(1. / 255),
+            layers.Conv2D(16, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Conv2D(32, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Conv2D(64, 3, padding='same', activation='relu'),
+            layers.MaxPooling2D(),
+            layers.Dropout(0.2),
+            layers.Flatten(),
+            layers.Dense(128, activation='relu'),
+            layers.Dense(num_classes)
+        ])
+        self.__model.compile(
+            optimizer='adam',
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            metrics=['accuracy'])
 
-            data_augmentation = keras.Sequential([
-                layers.experimental.preprocessing.RandomFlip("horizontal", input_shape=(self.height, self.width, 1)),
-                layers.experimental.preprocessing.RandomRotation(0.1),
-                layers.experimental.preprocessing.RandomZoom(0.1)
-            ])
+        # 생략 가능
+        self.__model.summary()
 
-            # 생략 가능
-            # plt.figure(figsize=(10, 10))
-            # for images, _ in train_ds.take(1):
-            #     for i in range(9):
-            #         augmented_images = data_augmentation(images)
-            #         plt.subplot(3, 3, i + 1)
-            #         plt.imshow(augmented_images[0].numpy().astype("uint8"), cmap="Greys")
-            #         plt.axis("off")
-            # plt.show()
+        epochs = 100
+        history = self.__model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+        self.__model.save('model.h5')
 
-            num_classes = len(self.class_names)
-            self.model = Sequential([
-                data_augmentation,
-                layers.experimental.preprocessing.Rescaling(1. / 255),
-                layers.Conv2D(16, 3, padding='same', activation='relu'),
-                layers.MaxPooling2D(),
-                layers.Conv2D(32, 3, padding='same', activation='relu'),
-                layers.MaxPooling2D(),
-                layers.Conv2D(64, 3, padding='same', activation='relu'),
-                layers.MaxPooling2D(),
-                layers.Dropout(0.2),
-                layers.Flatten(),
-                layers.Dense(128, activation='relu'),
-                layers.Dense(num_classes)
-            ])
-            self.model.compile(
-                optimizer='adam',
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                metrics=['accuracy'])
+        # 생략 가능
+        acc = history.history['accuracy']
+        val_acc = history.history['val_accuracy']
+        loss = history.history['loss']
+        val_loss = history.history['val_loss']
+        epochs_range = range(epochs)
+        plt.figure(figsize=(8, 8))
+        plt.subplot(1, 2, 1)
+        plt.plot(epochs_range, acc, label='Training Accuracy')
+        plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+        plt.legend(loc='lower right')
+        plt.title('Training and Validation Accuracy')
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs_range, loss, label='Training Loss')
+        plt.plot(epochs_range, val_loss, label='Validation Loss')
+        plt.legend(loc='upper right')
+        plt.title('Training and Validation Loss')
+        plt.show()
 
-            # 생략 가능
-            self.model.summary()
+    def predict(self):
+        if self.__model is None:
+            text = "The model does not exist. Please perform the fit image first."
+            print(text)
+            self.__browser.append(text)
+            return
 
-            self.epochs = 200
-            self.history = self.model.fit(self.train_ds, validation_data=self.val_ds, epochs=self.epochs)
-            self.model.save('model.h5')
-
-            # 생략 가능
-            # acc = history.history['accuracy']
-            # val_acc = history.history['val_accuracy']
-            # loss = history.history['loss']
-            # val_loss = history.history['val_loss']
-            # epochs_range = range(epochs)
-            # plt.figure(figsize=(8, 8))
-            # plt.subplot(1, 2, 1)
-            # plt.plot(epochs_range, acc, label='Training Accuracy')
-            # plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-            # plt.legend(loc='lower right')
-            # plt.title('Training and Validation Accuracy')
-            # plt.subplot(1, 2, 2)
-            # plt.plot(epochs_range, loss, label='Training Loss')
-            # plt.plot(epochs_range, val_loss, label='Validation Loss')
-            # plt.legend(loc='upper right')
-            # plt.title('Training and Validation Loss')
-            # plt.show()
-
-    def predict(self, predict_dir):
+        predict_dir = "predict"
         for predict in os.listdir(predict_dir):
             img = keras.preprocessing.image.load_img(
                 f"{predict_dir}/{predict}",
                 color_mode="grayscale",
-                target_size=(self.height, self.width)
+                target_size=(self.__height, self.__width)
             )
             img_array = keras.preprocessing.image.img_to_array(img)
             img_array = tf.expand_dims(img_array, 0)
-            predictions = self.model.predict(img_array)
+            predictions = self.__model.predict(img_array)
             score = tf.nn.softmax(predictions[0])
             print(
                 f"\"{predict}\" image most likely belongs to "
-                f"{self.class_names[np.argmax(score)]} with a "
+                f"{self.__class_names[np.argmax(score)]} with a "
                 f"{100 * np.max(score):.2f} percent confidence."
             )
-            self.browser.append(
+            self.__browser.append(
                 f"\"{predict}\" image most likely belongs to "
-                f"{self.class_names[np.argmax(score)]} with a "
+                f"{self.__class_names[np.argmax(score)]} with a "
                 f"{100 * np.max(score):.2f} percent confidence."
             )
