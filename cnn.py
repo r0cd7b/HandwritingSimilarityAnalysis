@@ -8,7 +8,9 @@ import os
 
 
 class CNN:
-    def __init__(self):
+    def __init__(self, browser):
+        self.__browser = browser
+
         self.__data_dir = "train"
         self.__batch_size = 32
         self.__height = 180
@@ -23,13 +25,13 @@ class CNN:
             batch_size=self.__batch_size
         )
         self.__class_names = self.__train_ds.class_names
-        print(f"Class names: {self.__class_names}")
+        self.__browser.append(f"Class names: {self.__class_names}")
 
         try:
             self.__model = tf.keras.models.load_model('model.h5')
         except Exception as e:
             self.__model = None
-            print(str(e))
+            self.__browser.append(str(e))
 
     def train(self):
         val_ds = tf.keras.preprocessing.image_dataset_from_directory(
@@ -44,8 +46,8 @@ class CNN:
 
         # 생략 가능
         for image_batch, labels_batch in self.__train_ds:
-            print(f"Image batch shape: {image_batch.shape}")
-            print(f"Labels batch shape: {labels_batch.shape}")
+            self.__browser.append(f"Image batch shape: {image_batch.shape}")
+            self.__browser.append(f"Labels batch shape: {labels_batch.shape}")
             break
 
         AUTOTUNE = tf.data.experimental.AUTOTUNE
@@ -57,7 +59,7 @@ class CNN:
         normalized_ds = self.__train_ds.map(lambda x, y: (normalization_layer(x), y))
         image_batch, labels_batch = next(iter(normalized_ds))
         first_image = image_batch[0]
-        print(
+        self.__browser.append(
             f"Minimum value of first image: {np.min(first_image)}, Maximum value of first image: {np.max(first_image)}"
         )
 
@@ -136,11 +138,10 @@ class CNN:
                 img_array = tf.expand_dims(img_array, 0)
                 predictions = self.__model.predict(img_array)
                 score = tf.nn.softmax(predictions[0])
-                print(
+                self.__browser.append(
                     f"\"{predict}\" image most likely belongs to "
                     f"{self.__class_names[np.argmax(score)]} with a "
                     f"{100 * np.max(score):.2f} percent confidence."
                 )
         else:
-            text = "The model does not exist. Please perform the fit image first."
-            print(text)
+            self.__browser.append("Model does not exist. Please train first.")

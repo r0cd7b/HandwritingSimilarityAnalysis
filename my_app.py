@@ -1,39 +1,32 @@
+from cnn import CNN
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
-import time
+from PyQt5.QtCore import *
+from picamera import PiCamera
 
 
-# from picamera import PiCamera
+# class Thread(QThread):
+#     def __init__(self, cnn):
+#         super(Thread, self).__init__()
+#         self.__cnn = cnn
+#
+#     def run(self) -> None:
+#         self.__cnn.train()
 
 
 class MyApp(QWidget):
-    def __init__(self, model):
-        super().__init__()
-        # camera = PiCamera()
-        # camera.resolution = (640, 480)
-        # camera.start_preview(fullscreen=False)
+    def __init__(self):
+        super(MyApp, self).__init__()
 
         capture_train_label = QLabel("Enter the class name:")
-        self.__capture_train_edit = QLineEdit(self)
-
+        self.__capture_train_edit = QLineEdit()
         capture_train_button = QPushButton("Capture training image")
-        capture_train_button.clicked.connect(self.capture_train)
-
         train_button = QPushButton("Train images")
-        train_button.clicked.connect(model.train)
-
         capture_predict_button = QPushButton("Capture predicting image")
-        capture_predict_button.clicked.connect(self.capture_predict)
-
         predict_button = QPushButton("Predict images")
-        predict_button.clicked.connect(model.test)
-
         self.__browser = QTextBrowser()
-        self.__browser.setAcceptRichText(True)
-        self.__browser.setOpenExternalLinks(True)
-
         clear_button = QPushButton('Clear')
-        clear_button.clicked.connect(self.__browser.clear)
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -48,9 +41,23 @@ class MyApp(QWidget):
 
         self.setWindowTitle('Handwriting Similarity Analysis')
         self.setWindowIcon(QIcon('handwriting_icon.png'))
-        self.resize(700, 500)
+        self.resize(700, 700)
         self.center()
         self.show()
+
+        camera = PiCamera()
+        camera.resolution = (640, 480)
+        camera.start_preview(fullscreen=False)
+
+        self.__cnn = CNN(self.__browser)
+        # self.__thread = Thread(self.__cnn)
+
+        capture_train_button.clicked.connect(self.capture_train)
+        # train_button.clicked.connect(self.__thread.start)
+        train_button.clicked.connect(self.__cnn.train)
+        capture_predict_button.clicked.connect(self.capture_predict)
+        predict_button.clicked.connect(self.__cnn.test)
+        clear_button.clicked.connect(self.__browser.clear)
 
     def center(self):
         qr = self.frameGeometry()
@@ -64,17 +71,11 @@ class MyApp(QWidget):
             QMessageBox.information(self, "Class Name", "The class name field is empty.\nPlease enter the class name")
             self.__capture_train_edit.setFocus()
             return
-        image_dir = f"train/{text}/{text}_{time.time_ns()}.png"
-        # self.camera.capture(image_dir)
+        image_dir = f"train/{text}/{text}_{QDateTime.currentMSecsSinceEpoch()}.png"
+        self.camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
 
     def capture_predict(self):
-        image_dir = f"predict/{time.time_ns()}.png"
-        # self.camera.capture(image_dir)
+        image_dir = f"predict/{QDateTime.currentMSecsSinceEpoch()}.png"
+        self.camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
-
-    def write(self, text):
-        self.__browser.append(text.replace('\n', ''))
-
-    def flush(self):
-        self.__browser.clear()
