@@ -45,9 +45,9 @@ class MyApp(QWidget):
         self.center()
         self.show()
 
-        camera = PiCamera()
-        camera.resolution = (640, 480)
-        camera.start_preview(fullscreen=False)
+        self.__camera = PiCamera()
+        self.__camera.resolution = (640, 480)
+        self.__camera.start_preview(fullscreen=False)
 
         self.__cnn = CNN(self.__browser)
         # self.__thread = Thread(self.__cnn)
@@ -72,10 +72,10 @@ class MyApp(QWidget):
             self.__capture_train_edit.setFocus()
             return
         image_dir = f"train/{text}/{text}_{QDateTime.currentMSecsSinceEpoch()}.png"
-        self.camera.capture(image_dir)
+        self.__camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
 
     def capture_predict(self):
         image_dir = f"predict/{QDateTime.currentMSecsSinceEpoch()}.png"
-        self.camera.capture(image_dir)
+        self.__camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
