@@ -11,23 +11,12 @@ import os
 class CNN:
     def __init__(self, browser):
         self.__browser = browser  # 수행 과정에서 발생한 Text를 출력하기 위해 Flame 객체를 browser로 받는다.
-
-        self.__data_dir = "train"
-        self.__batch_size = 32  # 전체 Data set을 나눠서 학습하기 위한 Batch size.
+        
         self.__height = 180
         self.__width = 180
-        self.__train_ds = tf.keras.preprocessing.image_dataset_from_directory(  # Directory에서 학습할 image를 불러온다.
-            self.__data_dir,
-            color_mode="grayscale",  # 필기체 분석에서는 색이 중요하지 않으므로 grayscale로 변환한다.
-            validation_split=0.2,  # 전체 Train data 중 검증 Data는 20%로 한다.
-            subset="training",
-            seed=123,  # Random seed를 고정하고 이후 검증 Data를 나눌 때 동일한 Seed를 사용한다.
-            image_size=(self.__height, self.__width),
-            batch_size=self.__batch_size
-        )
-        self.__class_names = self.__train_ds.class_names  # 학습할 필기체 주인의 이름을 저장한다.
-        self.__browser.append(f"Class names: {self.__class_names}")
-
+        self.__train_ds = None
+        self.__class_names = None
+        
         try:
             self.__model = tf.keras.models.load_model('model.h5')  # 이미 학습된 Model이 있다면 불러온다.
         except Exception as e:
@@ -35,14 +24,29 @@ class CNN:
             self.__browser.append(str(e))
 
     def train(self):
+        data_dir = "train"
+        batch_size = 32  # 전체 Data set을 나눠서 학습하기 위한 Batch size.
+        
+        self.__train_ds = tf.keras.preprocessing.image_dataset_from_directory(  # Directory에서 학습할 image를 불러온다.
+            data_dir,
+            color_mode="grayscale",  # 필기체 분석에서는 색이 중요하지 않으므로 grayscale로 변환한다.
+            validation_split=0.2,  # 전체 Train data 중 검증 Data는 20%로 한다.
+            subset="training",
+            seed=123,  # Random seed를 고정하고 이후 검증 Data를 나눌 때 동일한 Seed를 사용한다.
+            image_size=(self.__height, self.__width),
+            batch_size=batch_size
+        )
+        self.__class_names = self.__train_ds.class_names  # 학습할 필기체 주인의 이름을 저장한다.
+        self.__browser.append(f"Class names: {self.__class_names}")
+        
         val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            self.__data_dir,
+            data_dir,
             color_mode="grayscale",
             validation_split=0.2,
             subset="validation",
             seed=123,  # Train data를 제외한 나머지 검증 Data를 뽑아내기 위해 앞서 사용한 seed와 동일하게 맞춘다.
             image_size=(self.__height, self.__width),
-            batch_size=self.__batch_size
+            batch_size=batch_size
         )
 
         # Batch data의 shape을 확인한다.
@@ -68,7 +72,7 @@ class CNN:
             for i in range(9):
                 augmented_images = data_augmentation(images)
                 plt.subplot(3, 3, i + 1)
-                plt.imshow(augmented_images[0].numpy().astype("uint8"), cmap="Greys")
+                plt.imshow(augmented_images[0].numpy().astype("uint8"), cmap="gray")
                 plt.axis("off")
 
         # CNN Model을 구축한다.

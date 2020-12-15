@@ -3,7 +3,7 @@ from cnn import CNN
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import *
-# from picamera import PiCamera
+from picamera import PiCamera
 
 
 # 학습 과정을 다른 Thread로 수행하기 위한 Class
@@ -51,17 +51,17 @@ class MyApp(QWidget):
         self.show()
 
         # Picamera 작동
-        # self.__camera = PiCamera()
-        # self.__camera.resolution = (640, 480)
-        # self.__camera.start_preview(fullscreen=False)
+        self.__camera = PiCamera()
+        self.__camera.resolution = (640, 480)
+        self.__camera.start_preview(fullscreen=False, window=(100, 100, 640, 480))
 
         # CNN 객체 생성
         self.__cnn = CNN(self.__browser)
         # self.__thread = Thread(self.__cnn)  # CNN 객체를 Thread 객체에 넣어 생성
 
         capture_train_button.clicked.connect(self.capture_train)
-        # train_button.clicked.connect(self.__thread.start)
         train_button.clicked.connect(self.__cnn.train)
+        # train_button.clicked.connect(self.__thread.start)
         capture_predict_button.clicked.connect(self.capture_predict)
         predict_button.clicked.connect(self.__cnn.test)
         clear_button.clicked.connect(self.__browser.clear)
@@ -81,11 +81,11 @@ class MyApp(QWidget):
             self.__capture_train_edit.setFocus()
             return
         image_dir = f"train/{text}/{text}_{QDateTime.currentMSecsSinceEpoch()}.png"
-        # self.__camera.capture(image_dir)
+        self.__camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
 
     # Predict image 촬영을 수행하는 함수
     def capture_predict(self):
         image_dir = f"predict/{QDateTime.currentMSecsSinceEpoch()}.png"
-        # self.__camera.capture(image_dir)
+        self.__camera.capture(image_dir)
         self.__browser.append(f"The image was saved as {image_dir}")
